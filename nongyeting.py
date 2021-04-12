@@ -4,6 +4,9 @@ import re
 from bs4 import BeautifulSoup
 import time, datetime
 
+origin_url = 'http://nynct.henan.gov.cn/gzdt/tjdt'
+catid = 13
+
 def conn():  # 连接数据库
     db = pymysql.connect(host='47.99.78.253', user='hn_xiangtu_site', password='henanxiangtu2099', db='hn_xiangtu_site',
                          port=3306)
@@ -72,7 +75,7 @@ def insert_news(info_data, db):  # 爬取数据到数据库
         timeArray = time.strptime(info_data['time']+' 08:00:00', "%Y-%m-%d %H:%M:%S")
         timeStamp = int(time.mktime(timeArray))
         print(timeStamp)
-        cursor.execute(sql, (14, info_data['title'], '', timeStamp,timeStamp,'99','admin','1'))
+        cursor.execute(sql, (catid, info_data['title'], '', timeStamp,timeStamp,'99','admin','1'))
         nid = db.insert_id()
         print(db.insert_id())
         db.commit()  # 插入数据
@@ -107,8 +110,8 @@ def insert_news_data(info_data, id, db):  # 爬取数据到数据库
 
 def main():
     db = conn()
-    base_url = 'http://nynct.henan.gov.cn/gzdt/sxdt/index_{page}.html'  # 网址
-    for pageIdx in range(0, 29):
+    base_url = origin_url+'/index_{page}.html'  # 网址
+    for pageIdx in range(0, 30):
         if pageIdx == 0:
             base_url = base_url.replace('/index_{page}.html', '/')
         else:
@@ -124,18 +127,22 @@ def main():
         for url in urls:  # word_all为class_id所有可能的取值
             # 拼接单词的URL
             course_url = url
-            print('开始爬取' + course_url)
-            info_html = get_html(course_url)
-            print('开始爬取数据')
-            info_dict = get_info(info_html)  # 得到数据字典
-            print(info_dict)
-            # exit()
-            print('开始存储数据')
-            db = conn()
-            nid = insert_news(info_dict, db)  # 存储数据
-            print(nid)
-            db2 = conn()
-            insert_news_data(info_dict, nid, db2)
+            try :
+                if course_url.index('nynct.henan.gov.cn')>=0:
+                    print('开始爬取' + course_url)
+                    info_html = get_html(course_url)
+                    print('开始爬取数据')
+                    info_dict = get_info(info_html)  # 得到数据字典
+                    print(info_dict)
+                    # exit()
+                    print('开始存储数据')
+                    db = conn()
+                    nid = insert_news(info_dict, db)  # 存储数据
+                    print(nid)
+                    db2 = conn()
+                    insert_news_data(info_dict, nid, db2)
+            except:
+                print('网址无效')
 
 
 if __name__ == '__main__':
